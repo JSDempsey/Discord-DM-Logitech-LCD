@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,12 @@ namespace DiscordDMLogitechLCD
 
         static void Main(string[] args)
         {
-            cfgToken = System.IO.File.ReadAllText(AppDomain.CurrentDomain.BaseDirectory + "\\token.cfg");
+            FileStream fs = new FileStream("token.cfg", FileMode.OpenOrCreate, FileAccess.Read);
+
+            using (var streamReader = new StreamReader(fs, Encoding.UTF8))
+            {
+                cfgToken = streamReader.ReadToEnd();
+            }
             Console.WriteLine("Connecting with " + cfgToken);
 
             LCDWrapper.LogiLcdInit("Discord", LCDWrapper.LOGI_LCD_TYPE_MONO);
