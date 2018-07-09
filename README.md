@@ -10,3 +10,9 @@ Usage:
 3. Once you've pasted the token in, save and close the file then run LogitechLCD.exe.
 
 Please note, this does not currently support the Logitech G19, that uses a bigger display that I don't have a chance to develop for at the moment.
+
+Possible maybe future features:
+
+Switching between DMs between different people using the function buttons
+
+Allowing to view messages sent in servers
