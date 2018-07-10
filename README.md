@@ -9,7 +9,7 @@ Usage:
 
 3. Once you've pasted the token in, save and close the file then run LogitechLCD.exe.
 
-Please note, this does not currently support the Logitech G19/G19s, that uses a bigger colour display that I don't have access to the hardware to develop for it at the moment.
+Please note, this does not currently support the Logitech G19/G19s, that uses a bigger colour display that I don't have access to the hardware to develop for at the moment.
 
 
 Possible maybe future features:
