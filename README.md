@@ -11,8 +11,9 @@ Usage:
 
 Please note, this does not currently support the Logitech G19, that uses a bigger display that I don't have a chance to develop for at the moment.
 
+
 Possible maybe future features:
 
-Switching between DMs between different people using the function buttons
+Retreive previous couple messages to populate when you switch back to a DM channel
 
-Allowing to view messages sent in servers
+View server messages using 3rd function button
