@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
 
@@ -11,7 +12,15 @@ namespace DiscordDMLogitechLCD
     class Program
     {
         static DiscordClient discord;
+        static int window = 0;
+        static List<DSharpPlus.Entities.DiscordDmChannel> dmChannels = new List<DSharpPlus.Entities.DiscordDmChannel>();
+        static DSharpPlus.Entities.DiscordDmChannel selectedChannel;
         static string cfgToken;
+
+        static string line0 = "";
+        static string line1 = "";
+        static string line2 = "";
+        static string line3 = "";
 
         static void Main(string[] args)
         {
@@ -28,62 +37,252 @@ namespace DiscordDMLogitechLCD
             LCDWrapper.LogiLcdMonoSetText(0, "DISCORD LOADED");
             LCDWrapper.LogiLcdUpdate();
 
+            ThreadStart buttonChecker = new ThreadStart(checkButtonPress);
+            Thread buttonCheckerThread = new Thread(buttonChecker);
+            buttonCheckerThread.Start();
+            Console.WriteLine("[Background] Checking for function button presses...");
+
             MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
 
             LCDWrapper.LogiLcdShutdown();
         }
 
+        public static void checkButtonPress()
+        {
+            while (true)
+            {
+                Thread.Sleep(100);
+                if (LCDWrapper.LogiLcdIsButtonPressed(LCDWrapper.LOGI_LCD_MONO_BUTTON_0))
+                {
+                    if (window != 0)
+                    {
+                        changeWindow(0);
+                    }
+                }
+                if (LCDWrapper.LogiLcdIsButtonPressed(LCDWrapper.LOGI_LCD_MONO_BUTTON_1))
+                {
+                    if (window != 1)
+                    {
+                        changeWindow(1);
+                        Thread.Sleep(500);
+                    } else if (window == 1)
+                    {
+                        dmSelect();
+                        Thread.Sleep(500);
+                    }
+                }
+                if (LCDWrapper.LogiLcdIsButtonPressed(LCDWrapper.LOGI_LCD_MONO_BUTTON_2))
+                {
+                    Console.WriteLine("Button 2 pressed!");
+                }
+                if (LCDWrapper.LogiLcdIsButtonPressed(LCDWrapper.LOGI_LCD_MONO_BUTTON_3))
+                {
+                    Console.WriteLine("Button 3 pressed!");
+                }
+            }
+        }
+
+        static void changeWindow(int windowID)
+        {
+            if (windowID == 1)
+            {
+                DSharpPlus.Entities.DiscordDmChannel[] tempChannels = dmChannels.ToArray();
+
+                for (int i = 0; i < tempChannels.Length; i++)
+                {
+                    if (tempChannels[i] == selectedChannel)
+                    {
+                        DSharpPlus.Entities.DiscordUser[] tempUsers = tempChannels[i].Recipients.ToArray();
+                        if (tempUsers.Length == 1)
+                        {
+                            string channelName = tempUsers[0].Username + " <--";
+                            LCDWrapper.LogiLcdMonoSetText(0, channelName);
+                        } else if (tempUsers.Length > 1)
+                        {
+                            string channelName = tempUsers[0].Username + " + " + tempUsers.Length + " More <--";
+                            LCDWrapper.LogiLcdMonoSetText(0, channelName);
+                        }
+
+                        for (int c = 1; c < tempChannels.Length; c++)
+                        {
+                            if (c <= 3)
+                            {
+                                if ((i + c) < tempChannels.Length)
+                                {
+                                    tempUsers = tempChannels[i + c].Recipients.ToArray();
+                                    if (tempUsers.Length == 1)
+                                    {
+                                        LCDWrapper.LogiLcdMonoSetText(c, tempUsers[0].Username);
+                                    }
+                                    else if (tempUsers.Length > 1)
+                                    {
+                                        LCDWrapper.LogiLcdMonoSetText(c, tempUsers[0].Username + " + " + tempUsers.Length + " More");
+                                    }
+                                } else
+                                {
+                                    LCDWrapper.LogiLcdMonoSetText(c, "");
+                                }
+                            }
+                        }
+                    }
+                }
+                LCDWrapper.LogiLcdUpdate();
+                Console.WriteLine("Set window to 1");
+                window = 1;
+            } else if (windowID == 0)
+            {
+                DSharpPlus.Entities.DiscordUser[] tempUsers = selectedChannel.Recipients.ToArray();
+                if (tempUsers.Length == 1)
+                {
+                    LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username);
+                } else if (tempUsers.Length > 1)
+                {
+                    LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username + " + " + tempUsers.Length + " More");
+                }
+                line0 = "";
+                line1 = "";
+                line2 = "";
+                line3 = "";
+                LCDWrapper.LogiLcdMonoSetText(1, "");
+                LCDWrapper.LogiLcdMonoSetText(2, "");
+                LCDWrapper.LogiLcdMonoSetText(3, "");
+                LCDWrapper.LogiLcdUpdate();
+                Console.WriteLine("Set window to 0");
+                window = 0;
+            }
+        }
+
+        static void dmSelect()
+        {
+            DSharpPlus.Entities.DiscordDmChannel[] tempChannels = dmChannels.ToArray();
+            for (int i = 0; i < tempChannels.Length; i++)
+            {
+                if (tempChannels[i] == selectedChannel)
+                {
+                    if (tempChannels.Length > 1) {
+                        if ((i + 1) < tempChannels.Length)
+                        {
+                            selectedChannel = tempChannels[i + 1];
+                            Console.WriteLine("Selected channel: " + selectedChannel.Recipients[0].Username);
+                        } else if ((i + 1) >= tempChannels.Length)
+                        {
+                            selectedChannel = tempChannels[0];
+                            Console.WriteLine("Selected channel: " + selectedChannel.Recipients[0].Username);
+                        }
+                    }
+                    break;
+                }
+            }
+
+            for (int i = 0; i < tempChannels.Length; i++)
+            {
+                if (tempChannels[i] == selectedChannel)
+                {
+                    DSharpPlus.Entities.DiscordUser[] tempUsers = tempChannels[i].Recipients.ToArray();
+                    if (tempUsers.Length == 1)
+                    {
+                        LCDWrapper.LogiLcdMonoSetText(0, tempUsers[0].Username + " <--");
+                    } else if (tempUsers.Length > 1)
+                    {
+                        LCDWrapper.LogiLcdMonoSetText(0, tempUsers[0].Username + " + " + tempUsers.Length + " More <--");
+                    }
+
+                    for (int c = 1; c < tempChannels.Length; c++)
+                    {
+                        if (c <= 3) {
+                            if ((i + c) < tempChannels.Length)
+                            {
+                                tempUsers = tempChannels[i + c].Recipients.ToArray();
+                                if (tempUsers.Length == 1)
+                                {
+                                    LCDWrapper.LogiLcdMonoSetText(c, tempUsers[0].Username);
+                                } else if (tempUsers.Length > 1)
+                                {
+                                    LCDWrapper.LogiLcdMonoSetText(c, tempUsers[0].Username + " + " + tempUsers.Length + " More");
+                                }
+                            } else
+                            {
+                                LCDWrapper.LogiLcdMonoSetText(c, "");
+                            }
+                        }
+                    }
+                }
+            }
+
+            LCDWrapper.LogiLcdUpdate();
+        }
+
         static async Task MainAsync(string[] args)
         {
-            string line0 = "";
-            string line1 = "";
-            string line2 = "";
-            string line3 = "";
-
             discord = new DiscordClient(new DiscordConfiguration
             {
                 Token = cfgToken,
                 TokenType = TokenType.User
             });
 
-            discord.MessageCreated += async e => {
-                string extraInfo = "";
-                int attachmentCount = e.Message.Attachments.Count();
-
-                if (attachmentCount > 0)
+            discord.Ready += async r =>
+            {
+                Console.WriteLine("DM Channels: " + discord.PrivateChannels.Count());
+                foreach (DSharpPlus.Entities.DiscordDmChannel channel in discord.PrivateChannels)
                 {
-                    if (attachmentCount == 1)
-                    {
-                        extraInfo = (" [" + attachmentCount + " Attachment]");
-                    } else if (attachmentCount > 1)
-                    {
-                        extraInfo = (" [" + attachmentCount + " Attachments]");
-                    }
+                    dmChannels.Add(channel);
                 }
-
-                if (e.Channel.IsPrivate)
+                selectedChannel = dmChannels[0];
+                DSharpPlus.Entities.DiscordUser[] tempUsers = dmChannels[0].Recipients.ToArray();
+                if (tempUsers.Length == 1)
                 {
-                    Console.WriteLine(e.Author.Username.ToUpper() + ": " + e.Message.Content + extraInfo);
-                    var messageParts = (e.Author.Username.ToUpper() + ": " + e.Message.Content + extraInfo).SplitInParts(27);
-                    string[] stringArray = messageParts.Select(p => p).ToArray();
+                    LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username);
+                }
+                else if (tempUsers.Length > 1)
+                {
+                    LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username + " + " + tempUsers.Length + " More");
+                }
+                LCDWrapper.LogiLcdUpdate();
+                Console.WriteLine("Selected channel: " + dmChannels[0].Recipients[0].Username);
+            };
 
-                    int parts = stringArray.Length;
+            discord.MessageCreated += async e => {
+                if (window == 0)
+                {
 
-                    for (int i = 0; i < parts; i++)
+                    string extraInfo = "";
+                    int attachmentCount = e.Message.Attachments.Count();
+
+                    if (attachmentCount > 0)
                     {
-                        line0 = line1;
-                        LCDWrapper.LogiLcdMonoSetText(0, line1);
+                        if (attachmentCount == 1)
+                        {
+                            extraInfo = (" [" + attachmentCount + " Attachment]");
+                        } else if (attachmentCount > 1)
+                        {
+                            extraInfo = (" [" + attachmentCount + " Attachments]");
+                        }
+                    }
 
-                        line1 = line2;
-                        LCDWrapper.LogiLcdMonoSetText(1, line2);
+                    if (e.Channel == selectedChannel)
+                    {
+                        Console.WriteLine(e.Author.Username.ToUpper() + ":" + e.Message.Content + extraInfo);
+                        var messageParts = (e.Author.Username.ToUpper() + ":" + e.Message.Content + extraInfo).SplitInParts(27);
+                        string[] stringArray = messageParts.Select(p => p).ToArray();
 
-                        line2 = line3;
-                        LCDWrapper.LogiLcdMonoSetText(2, line3);
+                        int parts = stringArray.Length;
 
-                        LCDWrapper.LogiLcdMonoSetText(3, stringArray[i]);
-                        line3 = stringArray[i];
+                        for (int i = 0; i < parts; i++)
+                        {
+                            line0 = line1;
+                            LCDWrapper.LogiLcdMonoSetText(0, line1);
 
-                        LCDWrapper.LogiLcdUpdate();
+                            line1 = line2;
+                            LCDWrapper.LogiLcdMonoSetText(1, line2);
+
+                            line2 = line3;
+                            LCDWrapper.LogiLcdMonoSetText(2, line3);
+
+                            LCDWrapper.LogiLcdMonoSetText(3, stringArray[i]);
+                            line3 = stringArray[i];
+
+                            LCDWrapper.LogiLcdUpdate();
+                        }
                     }
                 }
             };
