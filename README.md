@@ -1,5 +1,5 @@
 # Discord-DM-Logitech-LCD
-Allows you to display your Discord direct messages onto your Logitech G15 v1 and v2, G13 and G510/510S keyboard.
+Allows you to display your Discord direct messages onto your Logitech G15 v1, G15 v2, G13 and G510/510S keyboard.
 
 ## Setup:
 
@@ -21,3 +21,4 @@ Run the program and wait for it to connect, once it's displayed on the screen yo
 * View server messages using third function button
 * Support for further message types such as calls beginning
 * Realtime DM channel creation and removal from list
+* Current voice chat if any displayed on fourth function button
