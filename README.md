@@ -18,5 +18,5 @@ Run the program and wait for it to connect, once it's displayed on the screen yo
 ## Possible maybe future features:
 
 * Storing which channel you last had open and reopening to that channel
-* Retreive previous couple messages to populate when you switch back to a DM channel
-* View server messages using 3rd function button
+* View server messages using third function button
+* Support for further message types such as calls beginning
