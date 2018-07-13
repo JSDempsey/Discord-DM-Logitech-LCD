@@ -22,6 +22,8 @@ namespace DiscordDMLogitechLCD
         static string line2 = "";
         static string line3 = "";
 
+        static int typingIndicatorAmount = 4;
+
         static void Main(string[] args)
         {
             FileStream fs = new FileStream("token.cfg", FileMode.OpenOrCreate, FileAccess.Read);
@@ -266,6 +268,18 @@ namespace DiscordDMLogitechLCD
         LCDWrapper.LogiLcdUpdate();
     }
 
+        public static void typingIndicator(string username)
+        {
+            for (int i = 0; i < typingIndicatorAmount; i++)
+            {
+                LCDWrapper.LogiLcdMonoSetText(3, username + " is typing...");
+                LCDWrapper.LogiLcdUpdate();
+                Thread.Sleep(500);
+                LCDWrapper.LogiLcdMonoSetText(3, line3);
+                LCDWrapper.LogiLcdUpdate();
+                Thread.Sleep(500);
+            }
+        }
 
     static async Task MainAsync(string[] args)
     {
@@ -294,6 +308,48 @@ namespace DiscordDMLogitechLCD
             }
             LCDWrapper.LogiLcdUpdate();
             Console.WriteLine("Selected channel: " + dmChannels[0].Recipients[0].Username);
+        };
+
+        discord.TypingStarted += async t =>
+        {
+            if (t.Channel == selectedChannel)
+            {
+                Console.WriteLine("User typing!");
+
+                Thread typingIndicatorThread = new Thread(() => typingIndicator(t.User.Username.ToUpper()));
+                typingIndicatorThread.Start();
+            }
+        };
+
+        discord.DmChannelCreated += async c =>
+        {
+            dmChannels.Add(c.Channel);
+            if (c.Channel.Recipients.Count() > 1)
+            {
+                Console.WriteLine("Channel added: " + c.Channel.Recipients[0].Username + " + " + c.Channel.Recipients.Count + " More");
+            }
+            else if (c.Channel.Recipients.Count() == 1)
+            {
+                Console.WriteLine("Channel added: " + c.Channel.Recipients[0].Username);
+            }
+        };
+
+        discord.DmChannelDeleted += async c =>
+        {
+            for (int i = 0; i < dmChannels.Count(); i++)
+            {
+                if (dmChannels[i] == c.Channel)
+                {
+                    if (dmChannels[i].Recipients.Count() > 1)
+                    {
+                        Console.WriteLine("Channel removed: " + dmChannels[i].Recipients[0].Username + " + " + dmChannels[i].Recipients.Count + " More");
+                    } else if (dmChannels[i].Recipients.Count() == 1) {
+                        Console.WriteLine("Channel removed: " + dmChannels[i].Recipients[0].Username);
+                    }
+                    dmChannels.RemoveAt(i);
+                    break;
+                }
+            }
         };
 
         discord.MessageCreated += async e => {
