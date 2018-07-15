@@ -168,42 +168,48 @@ namespace DiscordDMLogitechLCD
 
             for (int i = 0; i < messageArray.Length; i++)
             {
-                string extraInfo = "";
-                int attachmentCount = messageArray[i].Attachments.Count();
-
-                if (attachmentCount > 0)
+                if (messageArray[i].MessageType == DSharpPlus.Entities.MessageType.Call)
                 {
-                    if (attachmentCount == 1)
-                    {
-                        extraInfo = (" [" + attachmentCount + " Attachment]");
-                    }
-                    else if (attachmentCount > 1)
-                    {
-                        extraInfo = (" [" + attachmentCount + " Attachments]");
-                    }
+                    newMessage(messageArray[i].Author.Username.ToUpper() + " started a call.");
                 }
-
-                Console.WriteLine("Retrieved message: " + messageArray[i].Author.Username + ":" + messageArray[i].Content + extraInfo);
-                var messageParts = (messageArray[i].Author.Username + ":" + messageArray[i].Content + extraInfo).SplitInParts(27);
-                string[] stringArray = messageParts.Select(p => p).ToArray();
-
-                int parts = stringArray.Length;
-
-                for (int m = 0; m < parts; m++)
+                else if (messageArray[i].MessageType == DSharpPlus.Entities.MessageType.ChannelIconChange)
                 {
-                    line0 = line1;
-                    LCDWrapper.LogiLcdMonoSetText(0, line1);
+                    newMessage(messageArray[i].Author.Username.ToUpper() + " changed the channel icon.");
+                }
+                else if (messageArray[i].MessageType == DSharpPlus.Entities.MessageType.ChannelNameChange)
+                {
+                    newMessage(messageArray[i].Author.Username.ToUpper() + " changed the channel name.");
+                }
+                else if (messageArray[i].MessageType == DSharpPlus.Entities.MessageType.ChannelPinnedMessage)
+                {
+                    newMessage(messageArray[i].Author.Username.ToUpper() + " pinned a message.");
+                }
+                else if (messageArray[i].MessageType == DSharpPlus.Entities.MessageType.RecipientAdd)
+                {
+                    newMessage(messageArray[i].Author.Username.ToUpper() + " added a user.");
+                }
+                else if (messageArray[i].MessageType == DSharpPlus.Entities.MessageType.RecipientRemove)
+                {
+                    newMessage(messageArray[i].Author.Username.ToUpper() + " removed a user.");
+                }
+                else if (messageArray[i].MessageType == DSharpPlus.Entities.MessageType.Default)
+                {
+                    string extraInfo = "";
+                    int attachmentCount = messageArray[i].Attachments.Count();
 
-                    line1 = line2;
-                    LCDWrapper.LogiLcdMonoSetText(1, line2);
+                    if (attachmentCount > 0)
+                    {
+                        if (attachmentCount == 1)
+                        {
+                            extraInfo = (" [" + attachmentCount + " Attachment]");
+                        }
+                        else if (attachmentCount > 1)
+                        {
+                            extraInfo = (" [" + attachmentCount + " Attachments]");
+                        }
+                    }
 
-                    line2 = line3;
-                    LCDWrapper.LogiLcdMonoSetText(2, line3);
-
-                    LCDWrapper.LogiLcdMonoSetText(3, stringArray[m]);
-                    line3 = stringArray[m];
-
-                    LCDWrapper.LogiLcdUpdate();
+                    newMessage(messageArray[i].Author.Username.ToUpper() + ":" + messageArray[i].Content + extraInfo);
                 }
             }
         }
@@ -308,6 +314,8 @@ namespace DiscordDMLogitechLCD
             }
             LCDWrapper.LogiLcdUpdate();
             Console.WriteLine("Selected channel: " + dmChannels[0].Recipients[0].Username);
+
+            getPrevMessages();
         };
 
         discord.TypingStarted += async t =>
@@ -321,7 +329,7 @@ namespace DiscordDMLogitechLCD
             }
         };
 
-        discord.DmChannelCreated += async c =>
+            discord.DmChannelCreated += async c =>
         {
             dmChannels.Add(c.Channel);
             if (c.Channel.Recipients.Count() > 1)
@@ -355,44 +363,49 @@ namespace DiscordDMLogitechLCD
         discord.MessageCreated += async e => {
             if (window == 0)
             {
-
-                string extraInfo = "";
-                int attachmentCount = e.Message.Attachments.Count();
-
-                if (attachmentCount > 0)
-                {
-                    if (attachmentCount == 1)
-                    {
-                        extraInfo = (" [" + attachmentCount + " Attachment]");
-                    } else if (attachmentCount > 1)
-                    {
-                        extraInfo = (" [" + attachmentCount + " Attachments]");
-                    }
-                }
-
                 if (e.Channel == selectedChannel)
                 {
-                    Console.WriteLine(e.Author.Username.ToUpper() + ":" + e.Message.Content + extraInfo);
-                    var messageParts = (e.Author.Username.ToUpper() + ":" + e.Message.Content + extraInfo).SplitInParts(27);
-                    string[] stringArray = messageParts.Select(p => p).ToArray();
-
-                    int parts = stringArray.Length;
-
-                    for (int i = 0; i < parts; i++)
+                    if (e.Message.MessageType == DSharpPlus.Entities.MessageType.Call)
                     {
-                        line0 = line1;
-                        LCDWrapper.LogiLcdMonoSetText(0, line1);
+                        newMessage(e.Author.Username.ToUpper() + " started a call.");
+                    }
+                    else if (e.Message.MessageType == DSharpPlus.Entities.MessageType.ChannelIconChange)
+                    {
+                        newMessage(e.Author.Username.ToUpper() + " changed the channel icon.");
+                    }
+                    else if (e.Message.MessageType == DSharpPlus.Entities.MessageType.ChannelNameChange)
+                    {
+                        newMessage(e.Author.Username.ToUpper() + " changed the channel name.");
+                    }
+                    else if (e.Message.MessageType == DSharpPlus.Entities.MessageType.ChannelPinnedMessage)
+                    {
+                        newMessage(e.Author.Username.ToUpper() + " pinned a message.");
+                    }
+                    else if (e.Message.MessageType == DSharpPlus.Entities.MessageType.RecipientAdd)
+                    {
+                        newMessage(e.Author.Username.ToUpper() + " added a user.");
+                    }
+                    else if (e.Message.MessageType == DSharpPlus.Entities.MessageType.RecipientRemove)
+                    {
+                        newMessage(e.Author.Username.ToUpper() + " removed a user.");
+                    } else if (e.Message.MessageType == DSharpPlus.Entities.MessageType.Default)
+                    {
+                        string extraInfo = "";
+                        int attachmentCount = e.Message.Attachments.Count();
 
-                        line1 = line2;
-                        LCDWrapper.LogiLcdMonoSetText(1, line2);
+                        if (attachmentCount > 0)
+                        {
+                            if (attachmentCount == 1)
+                            {
+                                extraInfo = (" [" + attachmentCount + " Attachment]");
+                            }
+                            else if (attachmentCount > 1)
+                            {
+                                extraInfo = (" [" + attachmentCount + " Attachments]");
+                            }
+                        }
 
-                        line2 = line3;
-                        LCDWrapper.LogiLcdMonoSetText(2, line3);
-
-                        LCDWrapper.LogiLcdMonoSetText(3, stringArray[i]);
-                        line3 = stringArray[i];
-
-                        LCDWrapper.LogiLcdUpdate();
+                        newMessage(e.Author.Username.ToUpper() + ":" + e.Message.Content + extraInfo);
                     }
                 }
             }
@@ -400,6 +413,32 @@ namespace DiscordDMLogitechLCD
 
         await discord.ConnectAsync();
         await Task.Delay(-1);
+    }
+
+    public static void newMessage(string msg)
+    {
+        var messageParts = (msg).SplitInParts(27);
+        string[] stringArray = messageParts.Select(p => p).ToArray();
+        int parts = stringArray.Length;
+
+        for (int i = 0; i < parts; i++)
+        {
+            line0 = line1;
+            LCDWrapper.LogiLcdMonoSetText(0, line1);
+
+            line1 = line2;
+            LCDWrapper.LogiLcdMonoSetText(1, line2);
+
+            line2 = line3;
+            LCDWrapper.LogiLcdMonoSetText(2, line3);
+
+            LCDWrapper.LogiLcdMonoSetText(3, stringArray[i]);
+            line3 = stringArray[i];
+
+            Console.WriteLine(stringArray[i]);
+
+            LCDWrapper.LogiLcdUpdate();
+        }
     }
 
     }
