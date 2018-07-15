@@ -20,3 +20,4 @@ Run the program and wait for it to connect, once it's displayed on the screen yo
 * Storing which channel you last had open and reopening to that channel
 * View server messages using third function button
 * Current voice chat if any displayed on fourth function button
+* New message in unselected chat notification
