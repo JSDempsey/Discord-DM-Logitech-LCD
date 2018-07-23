@@ -15,6 +15,7 @@ namespace DiscordDMLogitechLCD
         static int window = 0;
         static List<DSharpPlus.Entities.DiscordDmChannel> dmChannels = new List<DSharpPlus.Entities.DiscordDmChannel>();
         static DSharpPlus.Entities.DiscordDmChannel selectedChannel;
+        static ulong channelToSelect = 0;
         static string cfgToken;
 
         static string line0 = "";
@@ -22,17 +23,59 @@ namespace DiscordDMLogitechLCD
         static string line2 = "";
         static string line3 = "";
 
-        static int typingIndicatorAmount = 4;
+        static FileStream fs;
+
+        static int notificationAmount = 4;
 
         static void Main(string[] args)
         {
-            FileStream fs = new FileStream("token.cfg", FileMode.OpenOrCreate, FileAccess.Read);
+            fs = new FileStream("config.cfg", FileMode.OpenOrCreate, FileAccess.ReadWrite);
+
+            string configString;
 
             using (var streamReader = new StreamReader(fs, Encoding.UTF8))
             {
-                cfgToken = streamReader.ReadToEnd();
+                configString = streamReader.ReadToEnd();
             }
-            Console.WriteLine("Connecting with " + cfgToken);
+
+            fs.Close();
+
+            string[] configParts = configString.Split(new String[] { "\r\n" }, StringSplitOptions.None);
+
+            if (configParts.Length == 1)
+            {
+                Console.WriteLine("ERROR: CONFIG FILE EMPTY");
+                Console.WriteLine("Populating new file...");
+                using (StreamWriter sw = new StreamWriter("config.cfg"))
+                {
+                    sw.WriteLine("Token=");
+                    sw.WriteLine("LastChannel=");
+                    sw.Close();
+                }
+                Console.WriteLine("config.cfg created. Please close this program, enter your token in the config and start it again.");
+                Console.ReadLine();
+                Environment.Exit(0);
+            }
+
+            for (int i = 0; i < configParts.Length; i++)
+            {
+                if (configParts[i] != "")
+                {
+                    string[] configOptionParts = configParts[i].Split('=');
+                    if (configOptionParts[0] == "Token")
+                    {
+                        cfgToken = configOptionParts[1];
+                        Console.WriteLine("Connecting with " + cfgToken);
+                    } else if (configOptionParts[0] == "LastChannel")
+                    {
+                        if (configOptionParts[1] != "")
+                        {
+                            Console.WriteLine("Previous channel: " + configOptionParts[1]);
+                            channelToSelect = ulong.Parse(configOptionParts[1]);
+                        }
+                    }
+                }
+            }
 
             LCDWrapper.LogiLcdInit("Discord", LCDWrapper.LOGI_LCD_TYPE_MONO);
             Console.WriteLine("Is mono screen connected? " + LCDWrapper.LogiLcdIsConnected(LCDWrapper.LOGI_LCD_TYPE_MONO));
@@ -133,13 +176,11 @@ namespace DiscordDMLogitechLCD
                 window = 1;
             } else if (windowID == 0)
             {
-                DSharpPlus.Entities.DiscordUser[] tempUsers = selectedChannel.Recipients.ToArray();
-                if (tempUsers.Length == 1)
+                using (StreamWriter sw = new StreamWriter("config.cfg"))
                 {
-                    LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username);
-                } else if (tempUsers.Length > 1)
-                {
-                    LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username + " + " + tempUsers.Length + " More");
+                    sw.WriteLine("Token=" + cfgToken);
+                    sw.WriteLine("LastChannel=" + selectedChannel.Id);
+                    sw.Close();
                 }
 
                 line0 = "";
@@ -274,18 +315,33 @@ namespace DiscordDMLogitechLCD
         LCDWrapper.LogiLcdUpdate();
     }
 
-        public static void typingIndicator(string username)
+    public static void notification(string message, int line)
+    {
+        for (int i = 0; i < notificationAmount; i++)
         {
-            for (int i = 0; i < typingIndicatorAmount; i++)
+            LCDWrapper.LogiLcdMonoSetText(line, message);
+            LCDWrapper.LogiLcdUpdate();
+            Thread.Sleep(500);
+            if (line == 0)
             {
-                LCDWrapper.LogiLcdMonoSetText(3, username + " is typing...");
-                LCDWrapper.LogiLcdUpdate();
-                Thread.Sleep(500);
-                LCDWrapper.LogiLcdMonoSetText(3, line3);
-                LCDWrapper.LogiLcdUpdate();
-                Thread.Sleep(500);
+                LCDWrapper.LogiLcdMonoSetText(line, line0);
             }
+            else if (line == 1)
+            {
+                LCDWrapper.LogiLcdMonoSetText(line, line1);
+            }
+            else if (line == 2)
+            {
+                LCDWrapper.LogiLcdMonoSetText(line, line2);
+            }
+            else if (line == 3)
+            {
+                LCDWrapper.LogiLcdMonoSetText(line, line3);
+            }
+            LCDWrapper.LogiLcdUpdate();
+            Thread.Sleep(500);
         }
+    }
 
     static async Task MainAsync(string[] args)
     {
@@ -301,9 +357,19 @@ namespace DiscordDMLogitechLCD
             foreach (DSharpPlus.Entities.DiscordDmChannel channel in discord.PrivateChannels)
             {
                 dmChannels.Add(channel);
+                if (channelToSelect != 0)
+                {
+                    if (channel.Id == channelToSelect)
+                    {
+                        selectedChannel = channel;
+                    }
+                }
             }
-            selectedChannel = dmChannels[0];
-            DSharpPlus.Entities.DiscordUser[] tempUsers = dmChannels[0].Recipients.ToArray();
+            if (channelToSelect == 0)
+            {
+                selectedChannel = dmChannels[0];
+            }
+            DSharpPlus.Entities.DiscordUser[] tempUsers = selectedChannel.Recipients.ToArray();
             if (tempUsers.Length == 1)
             {
                 LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username);
@@ -313,7 +379,7 @@ namespace DiscordDMLogitechLCD
                 LCDWrapper.LogiLcdMonoSetText(0, "Channel: " + tempUsers[0].Username + " + " + tempUsers.Length + " More");
             }
             LCDWrapper.LogiLcdUpdate();
-            Console.WriteLine("Selected channel: " + dmChannels[0].Recipients[0].Username);
+            Console.WriteLine("Selected channel: " + selectedChannel.Recipients[0].Username);
 
             getPrevMessages();
         };
@@ -324,7 +390,7 @@ namespace DiscordDMLogitechLCD
             {
                 Console.WriteLine("User typing!");
 
-                Thread typingIndicatorThread = new Thread(() => typingIndicator(t.User.Username.ToUpper()));
+                Thread typingIndicatorThread = new Thread(() => notification(t.User.Username.ToUpper() + " is typing...", 3));
                 typingIndicatorThread.Start();
             }
         };
@@ -406,6 +472,16 @@ namespace DiscordDMLogitechLCD
                         }
 
                         newMessage(e.Author.Username.ToUpper() + ":" + e.Message.Content + extraInfo);
+                    }
+                } else if (e.Channel != selectedChannel)
+                {
+                    for (int i = 0; i < dmChannels.Count(); i++)
+                    {
+                        if (e.Channel == dmChannels[i])
+                        {
+                            Thread newUnselectedChannelMessageThread = new Thread(() => notification("Message from " + e.Author.Username.ToUpper(), 0));
+                            newUnselectedChannelMessageThread.Start();
+                        }
                     }
                 }
             }
