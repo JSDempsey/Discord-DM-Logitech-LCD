@@ -14,3 +14,7 @@ Please note, this does not currently support the Logitech G19/G19s, that uses a 
 ## Usage:
 
 Run the program and wait for it to connect, once it's displayed on the screen you can press the second screen button to view the available channels, press it again to navigate the list. Simply navigate to the chat you want, then press the first screen button to go back to the channel view.
+
+## Possible future features maybe:
+
+* Start on boot option for ease of use
