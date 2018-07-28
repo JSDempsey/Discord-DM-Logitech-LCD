@@ -18,6 +18,8 @@ namespace DiscordDMLogitechLCD
         static ulong channelToSelect = 0;
         static string cfgToken;
 
+        static bool runOnStartup = false;
+
         static string line0 = "";
         static string line1 = "";
         static string line2 = "";
@@ -27,9 +29,15 @@ namespace DiscordDMLogitechLCD
 
         static int notificationAmount = 4;
 
+        static string dir;
+
         static void Main(string[] args)
         {
-            fs = new FileStream("config.cfg", FileMode.OpenOrCreate, FileAccess.ReadWrite);
+            string dirPath = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
+            dir = Path.GetDirectoryName(dirPath);
+            dir = dir.Remove(0, 6);
+
+            fs = new FileStream(dir + "\\config.cfg", FileMode.OpenOrCreate, FileAccess.ReadWrite);
 
             string configString;
 
@@ -46,10 +54,11 @@ namespace DiscordDMLogitechLCD
             {
                 Console.WriteLine("ERROR: CONFIG FILE EMPTY");
                 Console.WriteLine("Populating new file...");
-                using (StreamWriter sw = new StreamWriter("config.cfg"))
+                using (StreamWriter sw = new StreamWriter(dir + "\\config.cfg"))
                 {
                     sw.WriteLine("Token=");
                     sw.WriteLine("LastChannel=");
+                    sw.WriteLine("RunOnStartup=" + runOnStartup.ToString());
                     sw.Close();
                 }
                 Console.WriteLine("config.cfg created. Please close this program, enter your token in the config and start it again.");
@@ -66,12 +75,37 @@ namespace DiscordDMLogitechLCD
                     {
                         cfgToken = configOptionParts[1];
                         Console.WriteLine("Connecting with " + cfgToken);
+                        if (cfgToken == "")
+                        {
+                            Console.WriteLine("Please enter your token and restart the program!");
+                            Console.ReadLine();
+                            Environment.Exit(0);
+                        }
                     } else if (configOptionParts[0] == "LastChannel")
                     {
                         if (configOptionParts[1] != "")
                         {
                             Console.WriteLine("Previous channel: " + configOptionParts[1]);
                             channelToSelect = ulong.Parse(configOptionParts[1]);
+                        }
+                    } else if (configOptionParts[0] == "RunOnStartup")
+                    {
+                        if (configOptionParts[1].ToLower() == "false")
+                        {
+                            runOnStartup = false;
+                            Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                            if (key.GetValue("DiscordDMLogitechLCD") != null)
+                            {
+                                key.DeleteValue("DiscordDMLogitechLCD", false);
+                            }
+                        } else if (configOptionParts[1].ToLower() == "true")
+                        {
+                            runOnStartup = true;
+                            Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                            if (key.GetValue("DiscordDMLogitechLCD") == null || key.GetValue("DiscordDMLogitechLCD").ToString() != dir + "\\DiscordDMLogitechLCD.exe")
+                            {
+                                key.SetValue("DiscordDMLogitechLCD", dir + "\\DiscordDMLogitechLCD.exe");
+                            }
                         }
                     }
                 }
@@ -176,10 +210,11 @@ namespace DiscordDMLogitechLCD
                 window = 1;
             } else if (windowID == 0)
             {
-                using (StreamWriter sw = new StreamWriter("config.cfg"))
+                using (StreamWriter sw = new StreamWriter(dir + "\\config.cfg"))
                 {
                     sw.WriteLine("Token=" + cfgToken);
                     sw.WriteLine("LastChannel=" + selectedChannel.Id);
+                    sw.WriteLine("RunOnStartup=" + runOnStartup.ToString());
                     sw.Close();
                 }
 
